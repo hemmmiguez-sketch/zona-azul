@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zona Azul · Plan de Nutrición</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0e1117;
+      --surface:   #181c26;
+      --surface2:  #1f2436;
+      --border:    #2a3047;
+      --text:      #e8ecf5;
+      --muted:     #6b7494;
+      --acento:    #00c896;   /* verde salud */
+      --rojo:      #ff5c5c;
+      --amarillo:  #f5c842;
+      --radio:     10px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+
+    /* ── HEADER ─────────────────────────────────────── */
+    .header {
+      background: var(--surface);
+      border-bottom: 2px solid var(--acento);
+      padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .header-izq { display: flex; flex-direction: column; }
+    .header-titulo { font-size: 1.2rem; font-weight: 800; color: var(--acento); letter-spacing: 1px; }
+    .header-sub    { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .dia-badge {
+      background: var(--acento); color: #0e1117;
+      font-size: 0.78rem; font-weight: 800;
+      padding: 4px 12px; border-radius: 20px;
+      letter-spacing: 1px;
+    }
+
+    /* ── NAV INFERIOR ───────────────────────────────── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex; z-index: 50;
+    }
+    .nav-btn {
+      flex: 1; padding: 12px 8px;
+      background: none; border: none; color: var(--muted);
+      font-size: 0.75rem; font-weight: 600;
+      cursor: pointer; transition: color .2s;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .nav-btn svg { width: 20px; height: 20px; }
+    .nav-btn.activo { color: var(--acento); }
+
+    /* ── PANTALLAS ──────────────────────────────────── */
+    .pantalla { display: none; padding: 16px 20px; }
+    .pantalla.visible { display: block; }
+
+    /* ── SECCIONES ──────────────────────────────────── */
+    .seccion {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radio);
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .seccion-titulo {
+      font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1.5px;
+      color: var(--muted); margin-bottom: 12px;
+    }
+
+    /* ── CAMPOS ─────────────────────────────────────── */
+    .campo-grupo {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 0;
+    }
+    .campo-grupo.uno { grid-template-columns: 1fr; }
+    .campo {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .campo label {
+      font-size: 0.68rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .campo input[type="number"],
+    .campo input[type="date"] {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem; font-weight: 600;
+      padding: 10px 12px;
+      outline: none;
+      width: 100%;
+      transition: border-color .2s;
+      -moz-appearance: textfield;
+    }
+    .campo input::-webkit-outer-spin-button,
+    .campo input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .campo input:focus { border-color: var(--acento); }
+    .campo input::placeholder { color: var(--border); font-weight: 400; }
+
+    /* ingesta: nombre de comida a la izquierda */
+    .ingesta {
+      display: flex; align-items: flex-start; gap: 12px;
+      margin-bottom: 12px;
+    }
+    .ingesta:last-child { margin-bottom: 0; }
+    .ingesta-nombre {
+      font-size: 0.75rem; font-weight: 700;
+      color: var(--text); min-width: 72px;
+      padding-top: 28px;  /* alinear con input */
+    }
+    .ingesta-campos { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* ── RESULTADO ──────────────────────────────────── */
+    .resultado-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .resultado-card {
+      background: var(--surface2);
+      border-radius: var(--radio);
+      padding: 14px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+    .resultado-card .label {
+      font-size: 0.65rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .resultado-card .valor {
+      font-size: 1.8rem; font-weight: 800; line-height: 1;
+    }
+    .resultado-card .unidad {
+      font-size: 0.7rem; color: var(--muted); margin-top: 2px;
+    }
+    .resultado-card .etiqueta {
+      font-size: 0.75rem; font-weight: 700; margin-top: 6px;
+      padding: 3px 10px; border-radius: 12px; display: inline-block;
+    }
+    .deficit    { color: var(--acento); }
+    .superavit  { color: var(--rojo); }
+    .neutro     { color: var(--muted); }
+    .bg-deficit   { background: #00c89620; color: var(--acento); }
+    .bg-superavit { background: #ff5c5c20; color: var(--rojo); }
+    .bg-neutro    { background: var(--border); color: var(--muted); }
+
+    /* running total */
+    .running {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--surface2); border-radius: 8px;
+      padding: 10px 14px; margin-top: 10px;
+      font-size: 0.82rem; color: var(--muted);
+    }
+    .running strong { color: var(--text); font-size: 1rem; }
+
+    /* ── BOTONES ─────────────────────────────────────── */
+    .btn-primary {
+      width: 100%; padding: 14px;
+      background: var(--acento); color: #0e1117;
+      border: none; border-radius: var(--radio);
+      font-size: 1rem; font-weight: 800;
+      cursor: pointer; transition: opacity .2s;
+      margin-top: 4px;
+    }
+    .btn-primary:hover { opacity: .88; }
+    .btn-outline {
+      width: 100%; padding: 11px;
+      background: transparent;
+      border: 1px solid var(--border); color: var(--muted);
+      border-radius: var(--radio);
+      font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+      margin-top: 8px;
+    }
+    .btn-outline:hover { border-color: var(--acento); color: var(--acento); }
+
+    /* ── HISTORIAL ───────────────────────────────────── */
+    .historial-vacio {
+      text-align: center; padding: 48px 20px;
+      color: var(--muted); font-size: 0.9rem;
+    }
+    .hist-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radio);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: border-color .2s;
+    }
+    .hist-card:hover { border-color: var(--acento); }
+    .hist-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 8px;
+    }
+    .hist-dia   { font-size: 0.75rem; font-weight: 700; color: var(--acento); }
+    .hist-fecha { font-size: 0.72rem; color: var(--muted); }
+    .hist-stats {
+      display: flex; gap: 10px; flex-wrap: wrap;
+    }
+    .hist-stat {
+      font-size: 0.75rem; color: var(--muted);
+    }
+    .hist-stat strong { color: var(--text); }
+    .hist-badge {
+      font-size: 0.68rem; font-weight: 700;
+      padding: 2px 8px; border-radius: 8px;
+    }
+
+    /* ── MODAL VER DÍA ──────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: #000a;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200; padding: 20px;
+    }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px 20px;
+      width: 100%; max-width: 420px;
+      max-height: 80vh; overflow-y: auto;
+    }
+    .modal-titulo {
+      font-size: 1rem; font-weight: 800;
+      color: var(--acento); margin-bottom: 16px;
+    }
+    .modal-fila {
+      display: flex; justify-content: space-between;
+      padding: 6px 0; border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .modal-fila:last-child { border-bottom: none; }
+    .modal-fila .k { color: var(--muted); }
+    .modal-fila .v { color: var(--text); font-weight: 600; }
+    .modal-cerrar {
+      margin-top: 16px; width: 100%; padding: 10px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--muted);
+      cursor: pointer; font-size: 0.85rem;
+    }
+
+    /* ── FECHA ──────────────────────────────────────── */
+    .campo input[type="date"] { font-size: 0.9rem; }
+
+    @media (min-width: 600px) {
+      body { max-width: 500px; margin: 0 auto; }
+      .campo-grupo { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-izq">
+    <span class="header-titulo">ZONA AZUL</span>
+    <span class="header-sub">Plan de Nutrición</span>
+  </div>
+  <span class="dia-badge" id="badge-dia">DÍA 1</span>
+</header>
+
+<!-- ══════════════════════════════════════
+     PANTALLA: HOY
+══════════════════════════════════════ -->
+<div id="pantalla-hoy" class="pantalla visible">
+
+  <!-- Fecha y configuración diaria -->
+  <div class="seccion">
+    <div class="seccion-titulo">Configuración del día</div>
+    <div class="campo-grupo" style="margin-bottom:10px">
+      <div class="campo">
+        <label>Fecha</label>
+        <input type="date" id="fecha">
+      </div>
+      <div class="campo">
+        <label>N° Día del Plan</label>
+        <input type="number" id="num-dia" placeholder="1" min="1">
+      </div>
+    </div>
+    <div class="campo-grupo">
+      <div class="campo">
+        <label>GET diario (kcal)</label>
+        <input type="number" id="get" placeholder="2000" min="0">
+      </div>
+      <div class="campo">
+        <label>Meta proteica (grs)</label>
+        <input type="number" id="meta-prot" placeholder="150" min="0">
+      </div>
+    </div>
+  </div>
+
+  <!-- Ingestas -->
+  <div class="seccion">
+    <div class="seccion-titulo">Ingestas del día</div>
+
+    <div class="ingesta">
+      <div class="ingesta-nombre">DESAYUNO</div>
+      <div class="ingesta-campos">
+        <div class="campo"><label>Kcal</label>
+          <input type="number" id="d-kcal" placeholder="0" min="0" oninput="actualizar()"></div>
+        <div class="campo"><label>Proteína (g)</label>
+          <input type="number" id="d-prot" placeholder="0" min="0" oninput="actualizar()"></div>
+      </div>
+    </div>
+
+    <div class="ingesta">
+      <div class="ingesta-nombre">ALMUERZO</div>
+      <div class="ingesta-campos">
+        <div class="campo"><label>Kcal</label>
+          <input type="number" id="a-kcal" placeholder="0" min="0" oninput="actualizar()"></div>
+        <div class="campo"><label>Proteína (g)</label>
+          <input type="number" id="a-prot" placeholder="0" min="0" oninput="actualizar()"></div>
+      </div>
+    </div>
+
+    <div class="ingesta">
+      <div class="ingesta-nombre">MERIENDA</div>
+      <div class="ingesta-campos">
+        <div class="campo"><label>Kcal</label>
+          <input type="number" id="m-kcal" placeholder="0" min="0" oninput="actualizar()"></div>
+        <div class="campo"><label>Proteína (g)</label>
+          <input type="number" id="m-prot" placeholder="0" min="0" oninput="actualizar()"></div>
+      </div>
+    </div>
+
+    <div class="ingesta">
+      <div class="ingesta-nombre">CENA</div>
+      <div class="ingesta-campos">
+        <div class="campo"><label>Kcal</label>
+          <input type="number" id="c-kcal" placeholder="0" min="0" oninput="actualizar()"></div>
+        <div class="campo"><label>Proteína (g)</label>
+          <input type="number" id="c-prot" placeholder="0" min="0" oninput="actualizar()"></div>
+      </div>
+    </div>
+
+    <!-- Running total ingestas -->
+    <div class="running">
+      <span>Total ingerido:</span>
+      <span><strong id="total-ingerido">0</strong> kcal &nbsp;·&nbsp; <strong id="total-prot-ing">0</strong> g prot.</span>
+    </div>
+  </div>
+
+  <!-- Actividad -->
+  <div class="seccion">
+    <div class="seccion-titulo">Actividad física</div>
+    <div class="campo-grupo">
+      <div class="campo">
+        <label>Caminata (kcal)</label>
+        <input type="number" id="km-kcal" placeholder="0" min="0" oninput="actualizar()">
+      </div>
+      <div class="campo">
+        <label>Gym (kcal)</label>
+        <input type="number" id="gym-kcal" placeholder="0" min="0" oninput="actualizar()">
+      </div>
+    </div>
+    <div class="running" style="margin-top:10px">
+      <span>Total gastado (GET + actividad):</span>
+      <strong id="total-gasto">0</strong> kcal
+    </div>
+  </div>
+
+  <!-- RESULTADO FINAL -->
+  <div class="seccion">
+    <div class="seccion-titulo">Resultado del día</div>
+    <div class="resultado-grid">
+      <div class="resultado-card">
+        <div class="label">Balance Kcal</div>
+        <div class="valor neutro" id="res-kcal-val">—</div>
+        <div class="unidad">kcal</div>
+        <div class="etiqueta bg-neutro" id="res-kcal-label">—</div>
+      </div>
+      <div class="resultado-card">
+        <div class="label">Balance Proteína</div>
+        <div class="valor neutro" id="res-prot-val">—</div>
+        <div class="unidad">gramos</div>
+        <div class="etiqueta bg-neutro" id="res-prot-label">—</div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="guardarDia()">💾 Guardar día</button>
+    <button class="btn-outline" onclick="limpiarFormulario()">Nuevo día (limpiar)</button>
+  </div>
+
+</div><!-- /pantalla-hoy -->
+
+<!-- ══════════════════════════════════════
+     PANTALLA: HISTORIAL
+══════════════════════════════════════ -->
+<div id="pantalla-historial" class="pantalla">
+  <div id="lista-historial"></div>
+</div>
+
+<!-- MODAL VER DÍA -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="cerrarModal(event)">
+  <div class="modal" id="modal-contenido">
+    <div class="modal-titulo" id="modal-titulo"></div>
+    <div id="modal-body"></div>
+    <button class="modal-cerrar" onclick="cerrarModal()">Cerrar</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn activo" id="nav-hoy" onclick="mostrarPantalla('hoy')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    Hoy
+  </button>
+  <button class="nav-btn" id="nav-historial" onclick="mostrarPantalla('historial')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+    Historial
+  </button>
+</nav>
+
+<script>
+// ── STORAGE ──────────────────────────────────────────────────────────
+function cargarDatos() { return JSON.parse(localStorage.getItem('zona-azul-dias') || '[]'); }
+function guardarDatos(dias) { localStorage.setItem('zona-azul-dias', JSON.stringify(dias)); }
+
+// ── INICIALIZAR ───────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const hoy = new Date().toISOString().split('T')[0];
+  document.getElementById('fecha').value = hoy;
+  const dias = cargarDatos();
+  const numDia = dias.length + 1;
+  document.getElementById('num-dia').value = numDia;
+  document.getElementById('badge-dia').textContent = `DÍA ${numDia}`;
+  actualizar();
+});
+
+// ── NAVEGACIÓN ────────────────────────────────────────────────────────
+function mostrarPantalla(cual) {
+  document.getElementById('pantalla-hoy').classList.toggle('visible', cual === 'hoy');
+  document.getElementById('pantalla-historial').classList.toggle('visible', cual === 'historial');
+  document.getElementById('nav-hoy').classList.toggle('activo', cual === 'hoy');
+  document.getElementById('nav-historial').classList.toggle('activo', cual === 'historial');
+  if (cual === 'historial') renderHistorial();
+}
+
+// ── LEER CAMPO ────────────────────────────────────────────────────────
+function v(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+// ── ACTUALIZAR EN TIEMPO REAL ─────────────────────────────────────────
+function actualizar() {
+  const kcalIng = v('d-kcal') + v('a-kcal') + v('m-kcal') + v('c-kcal');
+  const protIng = v('d-prot') + v('a-prot') + v('m-prot') + v('c-prot');
+  const gasto   = v('get') + v('km-kcal') + v('gym-kcal');
+
+  document.getElementById('total-ingerido').textContent  = kcalIng;
+  document.getElementById('total-prot-ing').textContent  = protIng.toFixed(1);
+  document.getElementById('total-gasto').textContent     = gasto;
+
+  const balKcal = kcalIng - gasto;
+  const balProt = protIng - v('meta-prot');
+
+  // Balance kcal
+  const elKcal = document.getElementById('res-kcal-val');
+  const etKcal = document.getElementById('res-kcal-label');
+  if (v('get') > 0) {
+    elKcal.textContent = (balKcal > 0 ? '+' : '') + balKcal;
+    elKcal.className   = 'valor ' + (balKcal < 0 ? 'deficit' : balKcal > 0 ? 'superavit' : 'neutro');
+    etKcal.textContent = balKcal < 0 ? 'DÉFICIT' : balKcal > 0 ? 'SUPERÁVIT' : 'EQUILIBRIO';
+    etKcal.className   = 'etiqueta ' + (balKcal < 0 ? 'bg-deficit' : balKcal > 0 ? 'bg-superavit' : 'bg-neutro');
+  } else {
+    elKcal.textContent = '—'; elKcal.className = 'valor neutro';
+    etKcal.textContent = '—'; etKcal.className = 'etiqueta bg-neutro';
+  }
+
+  // Balance proteína
+  const elProt = document.getElementById('res-prot-val');
+  const etProt = document.getElementById('res-prot-label');
+  if (v('meta-prot') > 0) {
+    elProt.textContent = (balProt > 0 ? '+' : '') + balProt.toFixed(1);
+    elProt.className   = 'valor ' + (balProt < 0 ? 'deficit' : balProt > 0 ? 'superavit' : 'neutro');
+    etProt.textContent = balProt < 0 ? 'DÉFICIT' : balProt > 0 ? 'SUPERÁVIT' : 'EQUILIBRIO';
+    etProt.className   = 'etiqueta ' + (balProt < 0 ? 'bg-deficit' : balProt > 0 ? 'bg-superavit' : 'bg-neutro');
+  } else {
+    elProt.textContent = '—'; elProt.className = 'valor neutro';
+    etProt.textContent = '—'; etProt.className = 'etiqueta bg-neutro';
+  }
+}
+
+// ── GUARDAR DÍA ───────────────────────────────────────────────────────
+function guardarDia() {
+  const get    = v('get');
+  const metaP  = v('meta-prot');
+  if (!get)   { alert('Ingresá el GET del día antes de guardar.'); return; }
+  if (!metaP) { alert('Ingresá la meta proteica antes de guardar.'); return; }
+
+  const kcalIng = v('d-kcal') + v('a-kcal') + v('m-kcal') + v('c-kcal');
+  const protIng = v('d-prot') + v('a-prot') + v('m-prot') + v('c-prot');
+  const gasto   = get + v('km-kcal') + v('gym-kcal');
+
+  const dia = {
+    n:         parseInt(document.getElementById('num-dia').value) || 1,
+    fecha:     document.getElementById('fecha').value,
+    get,
+    metaProt:  metaP,
+    dKcal: v('d-kcal'), dProt: v('d-prot'),
+    aKcal: v('a-kcal'), aProt: v('a-prot'),
+    mKcal: v('m-kcal'), mProt: v('m-prot'),
+    cKcal: v('c-kcal'), cProt: v('c-prot'),
+    kmKcal:  v('km-kcal'),
+    gymKcal: v('gym-kcal'),
+    totalKcal: kcalIng,
+    totalProt: parseFloat(protIng.toFixed(1)),
+    gasto,
+    balKcal:   kcalIng - gasto,
+    balProt:   parseFloat((protIng - metaP).toFixed(1)),
+  };
+
+  const dias = cargarDatos();
+  // Si ya existe ese número de día, reemplazarlo
+  const idx = dias.findIndex(d => d.n === dia.n);
+  if (idx >= 0) dias[idx] = dia; else dias.push(dia);
+  dias.sort((a, b) => b.n - a.n);
+  guardarDatos(dias);
+  alert(`✅ Día ${dia.n} guardado correctamente.`);
+}
+
+// ── LIMPIAR ───────────────────────────────────────────────────────────
+function limpiarFormulario() {
+  const campos = ['d-kcal','d-prot','a-kcal','a-prot','m-kcal','m-prot',
+                  'c-kcal','c-prot','km-kcal','gym-kcal'];
+  campos.forEach(id => document.getElementById(id).value = '');
+  const dias = cargarDatos();
+  const nuevoN = dias.length + 1;
+  document.getElementById('num-dia').value = nuevoN;
+  document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+  document.getElementById('badge-dia').textContent = `DÍA ${nuevoN}`;
+  // Mantener GET y meta del día anterior
+  if (dias.length > 0) {
+    document.getElementById('get').value       = dias[0].get;
+    document.getElementById('meta-prot').value = dias[0].metaProt;
+  }
+  actualizar();
+}
+
+// ── HISTORIAL ─────────────────────────────────────────────────────────
+function renderHistorial() {
+  const dias = cargarDatos();
+  const cont = document.getElementById('lista-historial');
+  if (!dias.length) {
+    cont.innerHTML = '<div class="historial-vacio">Aún no hay días guardados.<br>Completá el formulario de Hoy y guardá.</div>';
+    return;
+  }
+  cont.innerHTML = dias.map(d => {
+    const bk = d.balKcal < 0 ? 'bg-deficit' : d.balKcal > 0 ? 'bg-superavit' : 'bg-neutro';
+    const bp = d.balProt < 0 ? 'bg-deficit' : d.balProt > 0 ? 'bg-superavit' : 'bg-neutro';
+    const lk = d.balKcal < 0 ? 'DÉFICIT' : d.balKcal > 0 ? 'SUPERÁVIT' : 'EQUILIBRIO';
+    const lp = d.balProt < 0 ? 'DÉFICIT' : d.balProt > 0 ? 'SUPERÁVIT' : 'EQUILIBRIO';
+    return `
+      <div class="hist-card" onclick="verDia(${d.n})">
+        <div class="hist-header">
+          <span class="hist-dia">DÍA ${d.n}</span>
+          <span class="hist-fecha">${formatFecha(d.fecha)}</span>
+        </div>
+        <div class="hist-stats">
+          <span class="hist-stat">GET <strong>${d.get}</strong> kcal</span>
+          <span class="hist-stat">Ingerido <strong>${d.totalKcal}</strong> kcal</span>
+          <span class="hist-badge ${bk}">${lk} ${Math.abs(d.balKcal)} kcal</span>
+          <span class="hist-badge ${bp}">Prot. ${lp} ${Math.abs(d.balProt)}g</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function formatFecha(f) {
+  if (!f) return '';
+  const [y, m, d] = f.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// ── VER DÍA ───────────────────────────────────────────────────────────
+function verDia(n) {
+  const dias = cargarDatos();
+  const d = dias.find(x => x.n === n);
+  if (!d) return;
+  const bk = d.balKcal < 0 ? 'deficit' : 'superavit';
+  const bp = d.balProt < 0 ? 'deficit' : 'superavit';
+  document.getElementById('modal-titulo').textContent = `DÍA ${d.n} · ${formatFecha(d.fecha)}`;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-fila"><span class="k">GET</span><span class="v">${d.get} kcal</span></div>
+    <div class="modal-fila"><span class="k">Meta proteica</span><span class="v">${d.metaProt} g</span></div>
+    <div class="modal-fila"><span class="k">Desayuno</span><span class="v">${d.dKcal} kcal · ${d.dProt}g prot.</span></div>
+    <div class="modal-fila"><span class="k">Almuerzo</span><span class="v">${d.aKcal} kcal · ${d.aProt}g prot.</span></div>
+    <div class="modal-fila"><span class="k">Merienda</span><span class="v">${d.mKcal} kcal · ${d.mProt}g prot.</span></div>
+    <div class="modal-fila"><span class="k">Cena</span><span class="v">${d.cKcal} kcal · ${d.cProt}g prot.</span></div>
+    <div class="modal-fila"><span class="k">Caminata</span><span class="v">${d.kmKcal} kcal</span></div>
+    <div class="modal-fila"><span class="k">Gym</span><span class="v">${d.gymKcal} kcal</span></div>
+    <div class="modal-fila"><span class="k">Total ingerido</span><span class="v">${d.totalKcal} kcal · ${d.totalProt}g prot.</span></div>
+    <div class="modal-fila"><span class="k">Total gastado</span><span class="v">${d.gasto} kcal</span></div>
+    <div class="modal-fila">
+      <span class="k">Balance kcal</span>
+      <span class="v ${bk}">${d.balKcal > 0 ? '+' : ''}${d.balKcal} kcal → ${d.balKcal < 0 ? 'DÉFICIT' : 'SUPERÁVIT'}</span>
+    </div>
+    <div class="modal-fila">
+      <span class="k">Balance proteína</span>
+      <span class="v ${bp}">${d.balProt > 0 ? '+' : ''}${d.balProt}g → ${d.balProt < 0 ? 'DÉFICIT' : 'SUPERÁVIT'}</span>
+    </div>`;
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function cerrarModal(e) {
+  if (!e || e.target === document.getElementById('modal') || e.currentTarget === document.querySelector('.modal-cerrar')) {
+    document.getElementById('modal').style.display = 'none';
+  }
+}
+</script>
+</body>
+</html>
