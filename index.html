@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Zona Azul · Plan de Nutrición</title>
+  <link rel="manifest" href="/zona-azul/manifest.json">
+  <meta name="theme-color" content="#00c896">
+  <link rel="apple-touch-icon" href="/zona-azul/icon-192.png">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -628,5 +631,13 @@ function cerrarModal(e) {
   }
 }
 </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/zona-azul/sw.js');
+      });
+    }
+  </script>
 </body>
 </html>
